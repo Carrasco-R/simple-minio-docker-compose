@@ -1,0 +1,36 @@
+services:
+  minio:
+    image: minio/minio
+    expose:
+      - 9000:9000
+      - 9090:9090
+    volumes:
+      - /data:/data
+    environment:
+      - MINIO_ROOT_USER=${MINIO_ROOT_USER}
+      - MINIO_ROOT_PASSWORD=${MINIO_ROOT_PASSWORD}
+    command: "minio server /data --console-address ':9090'"
+    labels:
+      - traefik.enable=true
+
+      # router for api server
+      - traefik.http.routers.minio-server.rule=Host(`${SERVER_HOST}`)
+      # this depends on your setup
+      # - traefik.http.routers.minio-server.entrypoints=websecure
+      # - traefik.http.routers.minio-server.tls.certresolver=le
+      - traefik.http.routers.minio-server.service=minio-server
+      - traefik.http.services.minio-server.loadbalancer.server.port=9000
+
+      # router for admin console
+      - traefik.http.routers.minio-console.rule=Host(`${CONSOLE_HOST}`)
+      # this depends on your setup
+      # - traefik.http.routers.minio-console.entrypoints=websecure
+      # - traefik.http.routers.minio-console.tls.certresolver=le
+      - traefik.http.routers.minio-console.service=minio-console
+      - traefik.http.services.minio-console.loadbalancer.server.port=9090
+    networks:
+      - traefik_default
+      - default
+networks:
+  traefik_default:
+    external: true
